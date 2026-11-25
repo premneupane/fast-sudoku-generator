@@ -248,7 +248,8 @@ uv run pre-commit run --all-files
 ### Continuous integration
 
 GitHub Actions (`.github/workflows/tests.yml`) installs the locked dependencies with uv, runs the same pre-commit hooks
-for lint and formatting, and runs the test suite on Python 3.10–3.13, for every push to `main` and every pull request.
+for lint and formatting, and runs the test suite on Python 3.10–3.13. It runs on every push to `main` or `scripts` and
+on every pull request.
 
 ## Repository layout
 
