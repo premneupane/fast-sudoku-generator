@@ -1,0 +1,53 @@
+# fast-sudoku-generator project and tool configuration, managed with uv.
+
+[project]
+name = "fast-sudoku-generator"
+version = "0.1.0"
+description = "Generate completed 9x9 Sudoku grids quickly and measure how samples are distributed."
+readme = "README.md"
+requires-python = ">=3.10"  # int.bit_count() needs 3.10
+dependencies = [
+    "numpy>=1.24,<3",
+]
+
+[dependency-groups]
+dev = [
+    "mdformat",
+    "mdformat-pyproject",
+    "pre-commit",
+    "pytest>=8.3",
+    "ruff==0.17.6",  # keep in step with the rev in .pre-commit-config.yaml
+]
+
+[tool.uv]
+package = false  # scripts run in place; nothing to build or install
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+addopts = "-ra"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+# ==========================================
+# Ruff Configuration (Python & Code Blocks)
+# ==========================================
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "E501"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 120
+
+# ==========================================
+# mdformat Configuration (Markdown Prose)
+# ==========================================
+[tool.mdformat]
+wrap = 120          # Wrap Markdown paragraphs at 120 characters
+number = false      # Keep ordered lists as 1. 1. 1. (set to true for 1. 2. 3.) 
+end_of_line = "lf"  # Normalize line endings to LF

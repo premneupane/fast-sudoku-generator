@@ -1,0 +1,23 @@
+# Local checks that mirror CI. Set up once with:
+#   uv sync
+#   uv run pre-commit install
+# Run everything by hand with: uv run pre-commit run --all-files
+# The ruff rev below should match the ruff pin in pyproject.toml.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        name: ruff check
+      - id: ruff-format
+        name: ruff format
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        # Runs in the project's uv environment with the versions locked in uv.lock.
+        entry: uv run --locked pytest -q
+        language: system
+        pass_filenames: false
+        always_run: true
