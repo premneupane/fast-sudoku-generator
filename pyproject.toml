@@ -5,6 +5,8 @@ name = "fast-sudoku-generator"
 version = "0.1.0"
 description = "Generate completed 9x9 Sudoku grids quickly and measure how samples are distributed."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"  # int.bit_count() needs 3.10
 dependencies = [
     "numpy>=1.24,<3",

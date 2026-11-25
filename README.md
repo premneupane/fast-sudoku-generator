@@ -278,3 +278,9 @@ data/
 - Grids are always valid completed Sudokus. Neither method produces puzzles (grids with cells removed).
 - Use the same `--seed` with the same method, count and cache to reproduce output exactly.
 - Generated `.npy` files are large and git-ignored. Rebuild them with the commands above.
+
+## License
+
+The code is released under the [MIT License](LICENSE). `data/v36288.txt` is Bertram Felgenhauer and Frazer Jarvis's
+published enumeration data, included with credit (see [Data source](#data-source-datav36288txt)); the MIT license covers
+this project's code, not their data.
