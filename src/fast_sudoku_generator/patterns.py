@@ -1,4 +1,4 @@
-"""Constants and shared lookup-table helpers for Sudoku tools."""
+"""The Felgenhauer-Jarvis band table (36,288 normalized top bands and completion counts)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ class PatternTable:
 
 
 def load_pattern_table(path: str | Path) -> PatternTable:
-    """Read the 36,288 weighted top-band patterns from v36288."""
+    """Read the 36,288 weighted top-band patterns from the band table."""
     pattern_re = re.compile(r"^\[([1-9]{6}),([1-9]{6}),([1-9]{6})\]\s*=>\s*(\d+)\s*$")
     patterns: list[tuple[str, str, str]] = []
     weights: list[int] = []
@@ -41,5 +41,5 @@ def load_pattern_table(path: str | Path) -> PatternTable:
             cumulative_weights.append(running_total)
 
     if len(patterns) != 36_288:
-        raise ValueError(f"Expected 36,288 v36288 pattern rows, found {len(patterns)} in {path}")
+        raise ValueError(f"Expected 36,288 band-table rows, found {len(patterns)} in {path}")
     return PatternTable(patterns, weights, cumulative_weights)

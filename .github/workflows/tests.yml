@@ -13,6 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Keep the downloaded band table in one place so it can be cached between runs.
+  FAST_SUDOKU_DATA_DIR: ${{ github.workspace }}/.fast-sudoku-data
+
 jobs:
   lint:
     name: Lint and format (pre-commit)
@@ -44,4 +48,34 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
+      # The band table is downloaded from Frazer Jarvis's site at most once per cache key.
+      - uses: actions/cache@v6
+        with:
+          path: .fast-sudoku-data/v36288.txt
+          key: band-table-3f1868fb77647e33
+      - run: uv run fast-sudoku fetch-data
       - run: uv run pytest
+
+  package:
+    name: Build and smoke-test the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv build
+      - name: Check what the wheel contains
+        run: |
+          unzip -l dist/*.whl
+          unzip -l dist/*.whl | grep -q "fast_sudoku_generator/cli.py"
+          if unzip -l dist/*.whl | grep -q "v36288"; then echo "band table must not be bundled"; exit 1; fi
+      - name: Install the wheel in a clean environment and run it
+        run: |
+          uv venv /tmp/clean
+          uv pip install --python /tmp/clean dist/*.whl
+          /tmp/clean/bin/fast-sudoku --version
+          /tmp/clean/bin/fast-sudoku generate -n 3 --seed 1
+          /tmp/clean/bin/python -c "import fast_sudoku_generator as f; print(f.generate_grids(2).shape)"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/

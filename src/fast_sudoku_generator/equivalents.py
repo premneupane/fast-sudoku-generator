@@ -1,13 +1,12 @@
-#!/usr/bin/env python3
 """Write random Sudoku-symmetry copies of each grid in a JSON file.
 
 Input and output grids are flat lists of 81 digits in row order, one grid per
-line, the same layout sudoku_generator.py writes with --format json. Input
+line, the same layout `fast-sudoku generate --format json` writes. Input
 grids given as 9x9 nested lists are also accepted.
 
-Example:
-    python3 utils/generate_equivalent_grids.py
-    python3 utils/generate_equivalent_grids.py --count 5 --seed 42
+Examples:
+    fast-sudoku equivalents grids.json                       print copies to stdout
+    fast-sudoku equivalents grids.json --count 5 --seed 42 -o copies.json
 """
 
 from __future__ import annotations
@@ -18,10 +17,6 @@ import random
 import sys
 from pathlib import Path
 from typing import Sequence
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = PROJECT_ROOT / "data" / "grids.json"
-DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "equiv_grids.json"
 
 
 def random_equivalent_grid(grid: Sequence[Sequence[int]], rng: random.Random) -> list[list[int]]:
@@ -65,12 +60,9 @@ def to_rows(grid: Sequence[int] | Sequence[Sequence[int]]) -> list[list[int]]:
     return [list(row) for row in grid]
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help="input JSON file (default: data/grids.json)")
-    parser.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT, help="output JSON file (default: data/equiv_grids.json)"
-    )
+def configure(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("input", type=Path, help="JSON file with a list of solved grids")
+    parser.add_argument("-o", "--output", type=Path, help="output JSON file (default: standard output)")
     parser.add_argument(
         "--count",
         type=int,
@@ -78,11 +70,12 @@ def main() -> int:
         help="random equivalent copies to create per input grid (default: 1)",
     )
     parser.add_argument("--seed", type=int, help="seed for repeatable output")
-    args = parser.parse_args()
 
+
+def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     if args.count < 1:
         parser.error("--count must be at least 1")
-    if args.input.resolve() == args.output.resolve():
+    if args.output is not None and args.input.resolve() == args.output.resolve():
         parser.error("--input and --output must be different files")
 
     with args.input.open(encoding="utf-8") as source:
@@ -91,9 +84,13 @@ def main() -> int:
         parser.error("input JSON must contain a list of Sudoku grids")
 
     rng = random.Random(args.seed)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        destination = args.output.open("w", encoding="utf-8")
+    else:
+        destination = sys.stdout
     output_count = 0
-    with args.output.open("w", encoding="utf-8") as destination:
+    try:
         destination.write("[\n")
         for grid in grids:
             rows = to_rows(grid)
@@ -104,10 +101,9 @@ def main() -> int:
                 destination.write(json.dumps(flat, separators=(", ", ":")))
                 output_count += 1
         destination.write("\n]\n")
+    finally:
+        if destination is not sys.stdout:
+            destination.close()
 
-    print(f"Wrote {output_count:,} equivalent grids to {args.output}", file=sys.stderr)
+    print(f"Wrote {output_count:,} equivalent grids to {args.output or 'standard output'}", file=sys.stderr)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

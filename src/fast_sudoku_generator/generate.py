@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
-"""Generate completed 9x9 Sudoku grids using several sampling methods.
+"""Generate completed 9x9 Sudoku grids.
 
-Usage:
-    python3 sudoku_generator.py -n 1
-    python3 sudoku_generator.py -n 1000000 --method b --format npy
-    python3 sudoku_generator.py -n 1000000 --method v --format npy
+Examples:
+    fast-sudoku generate                       one grid, printed as a 9x9 layout
+    fast-sudoku generate -n 1000 -o grids.txt  one grid per line as an 81-digit list
+    fast-sudoku generate -n 1000000 --method v --format npy -o grids.npy
 
-Text output to a terminal is shown as 9x9 grids and is capped at 10 grids unless
---force is given. Files, pipes and JSON get one 81-digit list per grid per line.
+Methods: backtracking (b) builds each grid by randomized search; vectorized (v)
+samples from a base-grid cache (built once with `fast-sudoku build-cache`) and
+applies random Sudoku symmetries in batches.
 
-Methods: backtracking (b) and vectorized (v). The vectorized method draws
-from a prebuilt grid cache and applies Sudoku symmetries in batches. Build a
-weighted or unweighted cache with utils/generate_cached_grids.py.
+Text and JSON output to a terminal is limited to 10 grids unless --force is given.
 """
 
 from __future__ import annotations
@@ -25,13 +23,13 @@ from typing import Iterator, Sequence
 
 import numpy as np
 
-from src.backtracking import generate_grid
-from src.vectorized import iter_vectorized_batches
+from fast_sudoku_generator.backtracking import generate_grid
+from fast_sudoku_generator.data import DataError, grid_cache_path
+from fast_sudoku_generator.vectorized import iter_vectorized_batches
 
-DEFAULT_GRID_FILE = Path(__file__).resolve().parent / "data" / "cached-grids.npy"
 DEFAULT_METHOD_OUTPUTS = {
-    "backtracking": Path(__file__).resolve().parent / "data" / "backtracking.npy",
-    "vectorized": Path(__file__).resolve().parent / "data" / "vectorized.npy",
+    "backtracking": Path("backtracking.npy"),
+    "vectorized": Path("vectorized.npy"),
 }
 METHODS = ("backtracking", "vectorized")
 TERMINAL_LIMIT = 10
@@ -108,9 +106,7 @@ def _write_npy(args: argparse.Namespace, rng: random.Random, grid_file: Path | N
     return generation_seconds, output_path
 
 
-def main() -> int:
-    end_to_end_start = time.perf_counter()
-    parser = argparse.ArgumentParser(description="Generate valid completed Sudoku grids.")
+def configure(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-n", "--count", type=int, default=1, help="number of grids (default: 1)")
     parser.add_argument(
         "--method",
@@ -119,20 +115,25 @@ def main() -> int:
         metavar="METHOD",
         help="backtracking (b) or vectorized (v)",
     )
-    parser.add_argument("--grid-file", type=Path, help="completed-grid cache for v (default: data/cached-grids.npy)")
+    parser.add_argument(
+        "--grid-file", type=Path, help="base-grid cache for v (default: the weighted cache from build-cache)"
+    )
     parser.add_argument("--seed", type=int, help="seed for repeatable output")
     parser.add_argument("--format", choices=("text", "json", "npy"), default="text")
     parser.add_argument(
         "-o",
         "--output",
-        help="output file (npy defaults to data/backtracking.npy for b and data/vectorized.npy for v)",
+        help="output file (npy defaults to backtracking.npy or vectorized.npy in the current folder)",
     )
     parser.add_argument(
         "--force",
         action="store_true",
         help=f"allow more than {TERMINAL_LIMIT} grids to print to the terminal",
     )
-    args = parser.parse_args()
+
+
+def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    end_to_end_start = time.perf_counter()
 
     if args.count < 1:
         parser.error("--count must be at least 1")
@@ -150,11 +151,9 @@ def main() -> int:
         print(f"Saving NumPy dataset to {default_output}", file=sys.stderr)
 
     rng = random.Random(args.seed)
-    grid_file = (args.grid_file or DEFAULT_GRID_FILE) if args.method == "vectorized" else None
+    grid_file = (args.grid_file or grid_cache_path("weighted")) if args.method == "vectorized" else None
     if grid_file and not grid_file.is_file():
-        parser.error(
-            f"grid cache not found: {grid_file}; build it with python3 utils/generate_cached_grids.py --type w"
-        )
+        raise DataError(f"grid cache not found: {grid_file}; build it once with `fast-sudoku build-cache`")
     if args.format == "npy":
         generation_seconds, output_path = _write_npy(args, rng, grid_file)
         print(f"Dataset saved to {output_path}", file=sys.stderr)
@@ -201,7 +200,3 @@ def main() -> int:
 
     report_timings(generation_seconds, args.count, end_to_end_start)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

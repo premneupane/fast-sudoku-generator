@@ -4,8 +4,9 @@ import random
 import numpy as np
 import pytest
 
-from src.backtracking import generate_grid
-from utils.compare_distributions import (
+from fast_sudoku_generator.backtracking import generate_grid
+from fast_sudoku_generator.cli import main
+from fast_sudoku_generator.compare import (
     _encode_pattern,
     _normalized_band_codes,
     compare_distributions,
@@ -76,3 +77,26 @@ def test_duplicate_count(tmp_path, small_cache):
     np.save(path, np.concatenate([grids, grids[:7]]))
     assert duplicate_grid_count(path) == 7
     assert duplicate_grid_count(small_cache) == 0
+
+
+def test_cli_compares_two_grid_files(pattern_path, small_cache, tmp_path, capsys):
+    other = tmp_path / "other.npy"
+    np.save(other, np.load(small_cache)[::-1])
+    assert main(["compare", str(small_cache), str(other), "--pattern-file", str(pattern_path)]) == 0
+    report = capsys.readouterr().out
+    assert "Top-band bucket comparison" in report
+    assert "Total variation distance" in report
+
+
+def test_cli_compares_two_json_distributions(tmp_path, capsys):
+    p, q = tmp_path / "p.json", tmp_path / "q.json"
+    p.write_text("[1, 1]")
+    q.write_text("[1, 3]")
+    assert main(["compare", str(p), str(q)]) == 0
+    assert "Total variation distance: 25.00%" in capsys.readouterr().out
+
+
+def test_cli_rejects_mixed_inputs(tmp_path):
+    with pytest.raises(SystemExit) as error:
+        main(["compare", str(tmp_path / "a.npy"), str(tmp_path / "b.json")])
+    assert error.value.code == 2

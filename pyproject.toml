@@ -1,16 +1,45 @@
 # fast-sudoku-generator project and tool configuration, managed with uv.
 
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14"]
+build-backend = "uv_build"
+
 [project]
 name = "fast-sudoku-generator"
-version = "0.1.0"
+version = "0.2.0"
 description = "Generate completed 9x9 Sudoku grids quickly and measure how samples are distributed."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"  # int.bit_count() needs 3.10
+authors = [{ name = "Prem Neupane" }]
+keywords = ["sudoku", "generator", "combinatorics", "sampling", "numpy"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment :: Puzzle Games",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
 dependencies = [
     "numpy>=1.24,<3",
 ]
+
+[project.scripts]
+fast-sudoku = "fast_sudoku_generator.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/premneupane/fast-sudoku-generator"
+Repository = "https://github.com/premneupane/fast-sudoku-generator"
+Issues = "https://github.com/premneupane/fast-sudoku-generator/issues"
 
 [dependency-groups]
 dev = [
@@ -20,9 +49,6 @@ dev = [
     "pytest>=8.3",
     "ruff==0.17.6",  # keep in step with the rev in .pre-commit-config.yaml
 ]
-
-[tool.uv]
-package = false  # scripts run in place; nothing to build or install
 
 [tool.pytest.ini_options]
 minversion = "8.3"

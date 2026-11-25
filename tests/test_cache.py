@@ -3,7 +3,9 @@ import random
 import numpy as np
 import pytest
 
-from utils.generate_cached_grids import generate_completion
+from fast_sudoku_generator.cache import generate_completion
+from fast_sudoku_generator.cli import main
+from fast_sudoku_generator.data import ENV_PATTERN_FILE, grid_cache_path
 from tests.sudoku_checks import is_valid_grid
 
 
@@ -35,14 +37,24 @@ def test_rejects_invalid_bands(band):
         generate_completion(band, random.Random(0))
 
 
-def test_cli_writes_cache(tmp_path, monkeypatch):
-    import sys
-
-    from utils import generate_cached_grids
-
+def test_cli_writes_cache(tmp_path, pattern_path):
     output = tmp_path / "cache.npy"
-    monkeypatch.setattr(sys, "argv", ["prog", "--count", "20", "--seed", "1", "-o", str(output)])
-    assert generate_cached_grids.main() == 0
+    args = ["build-cache", "--count", "20", "--seed", "1", "-o", str(output), "--pattern-file", str(pattern_path)]
+    assert main(args) == 0
     grids = np.load(output)
     assert grids.shape == (20, 81) and grids.dtype == np.uint8
     assert all(is_valid_grid(grid) for grid in grids)
+
+
+@pytest.mark.parametrize("kind, flag", [("weighted", "w"), ("unweighted", "u")])
+def test_cli_default_output_goes_to_data_dir(pattern_path, monkeypatch, kind, flag):
+    monkeypatch.setenv(ENV_PATTERN_FILE, str(pattern_path))
+    assert main(["build-cache", "--type", flag, "--count", "5", "--seed", "2"]) == 0
+    assert np.load(grid_cache_path(kind)).shape == (5, 81)
+
+
+def test_cli_without_band_table_reports_error(monkeypatch, capsys):
+    # no table in the (isolated) data folder and downloads pointed at a missing file
+    monkeypatch.setattr("fast_sudoku_generator.data.PATTERN_URL", "file:///nonexistent/results2long.txt")
+    assert main(["build-cache", "--count", "5"]) == 1
+    assert "fetch-data --from" in capsys.readouterr().err

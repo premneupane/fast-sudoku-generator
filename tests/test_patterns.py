@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from src.shared_helper import load_pattern_table
+from fast_sudoku_generator.patterns import load_pattern_table
 
 TOTAL_GRIDS = 6_670_903_752_021_072_936_960
 

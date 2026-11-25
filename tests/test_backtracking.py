@@ -1,6 +1,6 @@
 import random
 
-from src.backtracking import generate_grid
+from fast_sudoku_generator.backtracking import generate_grid
 from tests.sudoku_checks import is_valid_grid
 
 

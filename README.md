@@ -2,67 +2,63 @@
 
 Generate large numbers of completed 9×9 Sudoku grids quickly, and measure how the samples are distributed.
 
-The generator has two methods:
+There are two generation methods:
 
-- **Backtracking (`b`)** builds each grid from scratch with a randomized depth-first search. It is simple and needs no
-  setup, but it is slow for large batches.
-- **Vectorized (`v`)** samples base grids from a prebuilt cache and applies random Sudoku symmetries to whole batches at
-  once with NumPy. It is much faster for large batches.
+- **Backtracking (`b`)** builds each grid from scratch with a randomized depth-first search. It needs no setup, but it
+  is slow for large batches.
+- **Vectorized (`v`)** samples base grids from a prebuilt cache and applies random Sudoku symmetries to whole batches
+  at once with NumPy. It is about 170 times faster.
 
-The `utils/` folder holds the tools that build the cache for the vectorized method and compare the distributions of
-generated datasets.
+The package also builds the cache, compares the distributions of generated datasets, and makes symmetry copies of
+grids. Everything is available as the `fast-sudoku` command and as a Python API.
 
-## Requirements
-
-- [uv](https://docs.astral.sh/uv/)
-- Python 3.10 or later (the code uses `int.bit_count()`). uv installs the version pinned in `.python-version` (3.12.3)
-  if you don't have it.
-
-Dependencies live in `pyproject.toml` and exact versions are locked in `uv.lock`. The only runtime dependency is NumPy;
-the `dev` group adds `ruff`, `pytest`, `pre-commit` and `mdformat`.
+## Install
 
 ```bash
-uv sync                      # creates .venv with the runtime and dev dependencies
-source .venv/bin/activate    # optional: lets you run the python3 commands below directly
+pip install fast-sudoku-generator
 ```
 
-Without activating, prefix any command with `uv run`, for example `uv run python sudoku_generator.py -n 5`.
+or, to install just the command with [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/):
+
+```bash
+uv tool install fast-sudoku-generator
+pipx install fast-sudoku-generator
+```
+
+Requires Python 3.10 or later. The only dependency is NumPy.
 
 ## Quick start
 
 ```bash
-# One grid, printed to the terminal
-python3 sudoku_generator.py
+# One grid, printed as a 9x9 layout
+fast-sudoku generate
 
-# Five reproducible grids as JSON
-python3 sudoku_generator.py -n 5 --format json --seed 42
+# A thousand reproducible grids, one per line, to a file
+fast-sudoku generate -n 1000 --seed 42 -o grids.txt
 
-# A thousand grids to a text file, one grid per line
-python3 sudoku_generator.py -n 1000 -o grids.txt
+# For the fast method, build the base-grid cache once (about 7 minutes, 78 MB)
+fast-sudoku build-cache
 
-# The vectorized method needs a grid cache first (one-time step)
-python3 utils/generate_cached_grids.py --type weighted
-
-# One million grids saved as a NumPy array
-python3 sudoku_generator.py -n 1000000 --method v --format npy
+# A million grids as a NumPy array
+fast-sudoku generate -n 1000000 --method v --format npy -o grids.npy
 ```
 
-Timing information is printed to stderr, so stdout stays clean for piping.
+The first command that needs the Felgenhauer–Jarvis band table downloads it (about 150 KB, once). See "Data files" below.
 
-To keep the terminal readable, text and JSON output to a terminal is limited to 10 grids. Larger requests stop with an
-error that suggests `-o FILE` or `--format npy`. Redirected or piped output (`> grids.txt`, `| head`) is not limited,
-and `--force` lifts the limit.
+## Commands
 
-## `sudoku_generator.py`
+Run `fast-sudoku COMMAND --help` for every option.
+
+### `fast-sudoku generate`
 
 | Option | Description |
 | --- | --- |
 | `-n`, `--count` | Number of grids to generate (default: 1). |
 | `--method` | `backtracking` / `b` (default) or `vectorized` / `v`. |
-| `--grid-file` | Grid cache for the vectorized method (default: `data/cached-grids.npy`). |
+| `--grid-file` | Base-grid cache for the vectorized method (default: the weighted cache from `build-cache`). |
 | `--seed` | Seed for repeatable output. |
 | `--format` | `text` (default), `json` or `npy`. |
-| `-o`, `--output` | Output file. Text and JSON default to stdout. `npy` defaults to `data/backtracking.npy` or `data/vectorized.npy`. |
+| `-o`, `--output` | Output file. Text and JSON default to standard output; `npy` defaults to `backtracking.npy` or `vectorized.npy` in the current folder. |
 | `--force` | Allow more than 10 grids to print to the terminal. |
 
 Output formats:
@@ -73,18 +69,119 @@ Output formats:
   written as a JSON array with one grid per line.
 - **npy**: a `(count, 81)` `uint8` array, written through a memory map so large datasets do not have to fit in memory.
 
+To keep the terminal readable, text and JSON output to a terminal is limited to 10 grids. Larger requests stop with an
+error that suggests `-o FILE` or `--format npy`. Redirected or piped output (`> grids.txt`, `| head`) is not limited,
+and `--force` lifts the limit. Timing information goes to standard error, so standard output stays clean for piping.
+
+### `fast-sudoku build-cache`
+
+Builds the base-grid cache that the vectorized method samples from. Each grid starts from one of the 36,288 normalized
+top bands in the band table, and the remaining six rows are completed with randomized backtracking.
+
+```bash
+fast-sudoku build-cache                       # weighted, 1,000,000 grids
+fast-sudoku build-cache --type u --seed 42    # unweighted
+```
+
+- `--type weighted` (`w`, the default) picks each top band in proportion to its number of completions.
+- `--type unweighted` (`u`) picks each top band with equal probability.
+- `--count` (default 1,000,000), `--seed`, `-o/--output`, `--pattern-file` and `--progress-every` are also available.
+
+Caches are saved in the data folder unless you pass `-o`. A one-million-grid cache is about 78 MB.
+
+### `fast-sudoku compare`
+
+Compares two `.npy` grid datasets (shape `(N, 81)` or `(N, 9, 9)`) with each other and with the reference distribution
+from the band table:
+
+```bash
+fast-sudoku compare backtracking.npy vectorized.npy
+```
+
+Each grid's top band is normalized (digits relabeled so the first box reads 1–9, then the second and third boxes are
+reduced) and mapped to one of the 36,288 buckets. The report gives, for each sample, the grid count, duplicate grids,
+buckets observed, entropy, KL divergence, Jensen–Shannon divergence and total-variation distance from the reference,
+and then the same divergences between the two samples.
+
+These metrics describe the top-band distribution only, not the probability of complete grids. Exact-grid entropy is not
+reported, because with samples of a million grids it mostly reflects sample size.
+
+It also compares two JSON weight distributions (lists in matching order, or objects keyed by category):
+
+```bash
+fast-sudoku compare observed.json target.json
+```
+
+### `fast-sudoku equivalents`
+
+Reads a JSON list of solved grids and writes random symmetry-equivalent copies of each one, using the same
+transformations as the vectorized method. Grids are flat lists of 81 digits in row order, one per line, in the same
+layout as `generate --format json`; 9×9 nested lists are also accepted as input.
+[`examples/grids.json`](https://github.com/premneupane/fast-sudoku-generator/blob/main/examples/grids.json) holds one
+example grid.
+
+```bash
+fast-sudoku equivalents grids.json --count 5 --seed 42 -o copies.json
+```
+
+Without `-o`, the copies are written to standard output.
+
+### `fast-sudoku fetch-data`
+
+Downloads the band table now instead of on first use, for example before going offline. `--from FILE` installs a copy
+you already have (`results2long.gz` or `results2long.txt`), and `--force` replaces an existing copy. Either way, the file is checked against its known SHA-256
+hash before it is kept.
+
+## Python API
+
+```python
+from fast_sudoku_generator import generate_grids
+
+grids = generate_grids(1000, seed=42)  # backtracking, shape (1000, 81), dtype uint8
+grids = generate_grids(1_000_000, method="vectorized")  # needs `fast-sudoku build-cache` once
+grid = grids[0].reshape(9, 9)
+```
+
+`generate_grids(count, method="backtracking", seed=None, grid_file=None)` returns grids as rows of 81 digits in row
+order. For the same method, count, seed and cache, it returns the same grids as `fast-sudoku generate`. A missing cache
+raises `fast_sudoku_generator.DataError`.
+
+## Data files
+
+The package keeps two kinds of file in a per-user data folder:
+
+| Platform | Default folder |
+| --- | --- |
+| macOS | `~/Library/Caches/fast-sudoku-generator` |
+| Linux | `~/.cache/fast-sudoku-generator` (or `$XDG_CACHE_HOME/fast-sudoku-generator`) |
+| Windows | `%LOCALAPPDATA%\fast-sudoku-generator` |
+
+- **`v36288.txt`**, the band table. It is not bundled with the package. On first use the gzipped version,
+  `results2long.gz` on [Frazer Jarvis's page](https://www.afjarvis.org.uk/sudoku/bertram.html), is downloaded,
+  decompressed and checked against a known SHA-256 hash.
+- **`cached-grids.npy`** and **`cached-grids-unweighted.npy`**, the base-grid caches built by `fast-sudoku build-cache`.
+
+Two environment variables change this:
+
+- `FAST_SUDOKU_DATA_DIR`: use this folder instead.
+- `FAST_SUDOKU_PATTERN_FILE`: use this band table instead of the downloaded one. It is not checksum-checked, so it can
+  point at a table you generated yourself.
+
+**Offline machines:** download `results2long.gz` by hand from the page above, copy it over, and run
+`fast-sudoku fetch-data --from results2long.gz`. A decompressed `results2long.txt` works too.
+
 ## How the methods work
 
 ### Backtracking
 
-`src/backtracking.py` fills the grid one cell at a time. Row, column and box usage are tracked as 9-bit masks. At each
-step the search picks a cell with the fewest legal digits (the minimum-remaining-values heuristic), breaking ties at
-random, tries its candidates in random order and backtracks on a dead end.
+The search fills the grid one cell at a time. Row, column and box usage are tracked as 9-bit masks. At each step the
+search picks a cell with the fewest legal digits (the minimum-remaining-values heuristic), breaking ties at random,
+tries its candidates in random order and backtracks on a dead end.
 
 ### Vectorized
 
-`src/vectorized.py` reads the base-grid cache with a memory map and walks through it in a random order. Each base grid
-is transformed with a random combination of the validity-preserving Sudoku symmetries:
+The base-grid cache is read with a memory map and walked through in a random order. Each base grid is transformed with
+a random combination of the validity-preserving Sudoku symmetries:
 
 - permuting the three bands, and the three rows within each band;
 - permuting the three stacks, and the three columns within each stack;
@@ -93,6 +190,23 @@ is transformed with a random combination of the validity-preserving Sudoku symme
 
 All of this is done with NumPy indexing on batches of up to 65,536 grids. If you ask for more grids than the cache
 holds, the cache is reshuffled and reused, and the random transformations keep the outputs distinct.
+
+### Why sample from the band table
+
+The goal is a uniform sample: every one of the 6,670,903,752,021,072,936,960 valid grids equally likely. Plain
+randomized backtracking does not give that, because the order of the search favors some grids over others. In a uniform
+sample, a top band appears in proportion to how many ways it can be completed. Drawing the top band with the
+completion-count weights from the band table therefore matches that part of the target distribution, and the symmetry
+transformations used by the vectorized method map each grid to another valid grid without favoring any of them.
+
+This is an imperfect proxy for uniform sampling:
+
+- Only the top band is weighted correctly. The other six rows are filled by randomized backtracking, which does not pick
+  uniformly among the completions of that band.
+- The vectorized method can only produce symmetry variants of grids in the cache. A one-million-grid cache covers at
+  most a million of the 5,472,730,538 essentially different grids, however many outputs you generate.
+- `fast-sudoku compare` checks the top-band distribution only, so it can show bias in the top band but not in the rest
+  of the grid.
 
 ### Performance
 
@@ -107,91 +221,20 @@ The vectorized method was about 170 times faster. These times come from one run 
 3.10 and NumPy 2.2, using the default one-million-grid weighted cache. They do not include the one-time cache build,
 which takes about 0.4 ms per grid (roughly 7 minutes for the default million). Your numbers will vary with hardware.
 
-## Utilities
+## The band table
 
-### `utils/generate_cached_grids.py`: build the base-grid cache
-
-Builds the cache that the vectorized method draws from. Each grid starts from one of the 36,288 normalized top-band
-patterns in `data/v36288.txt`, and the remaining six rows are completed with randomized backtracking.
-
-```bash
-python3 utils/generate_cached_grids.py --type weighted            # -> data/cached-grids.npy
-python3 utils/generate_cached_grids.py --type unweighted --seed 42 # -> data/cached-grids-unweighted.npy
-```
-
-- `--type weighted` (`w`, the default) picks each top band in proportion to its number of completions, the weight listed
-  for it in `v36288.txt`.
-- `--type unweighted` (`u`) picks each top band with equal probability.
-- `--count` (default 1,000,000), `--seed`, `-o/--output`, `--pattern-file` and `--progress-every` are also available.
-
-A one-million-grid cache is about 78 MB.
-
-#### Why sample from `v36288.txt`
-
-The goal is a uniform sample: every one of the 6,670,903,752,021,072,936,960 valid grids equally likely. Plain randomized
-backtracking does not give that, because the order of the search favors some grids over others. In a uniform sample, a
-top band appears in proportion to how many ways it can be completed. Drawing the top band with the completion-count
-weights from `v36288.txt` therefore matches that part of the target distribution, and the symmetry transformations used
-by the vectorized method map each grid to another valid grid without favoring any of them.
-
-This is an imperfect proxy for uniform sampling:
-
-- Only the top band is weighted correctly. The other six rows are filled by randomized backtracking, which does not pick
-  uniformly among the completions of that band.
-- The vectorized method can only produce symmetry variants of grids in the cache. A one-million-grid cache covers at
-  most a million of the 5,472,730,538 essentially different grids, however many outputs you generate.
-- `compare_distributions.py` checks the top-band distribution only, so it can show bias in the top band but not in the
-  rest of the grid.
-
-### `utils/compare_distributions.py`: compare samples
-
-Compares two `.npy` grid datasets (shape `(N, 81)` or `(N, 9, 9)`) with each other and with the reference distribution
-from `v36288.txt`:
-
-```bash
-python3 utils/compare_distributions.py data/backtracking.npy data/vectorized.npy
-```
-
-Each grid's top band is normalized (digits relabeled so the first box reads 1–9, then the second and third boxes are
-reduced) and mapped to one of the 36,288 buckets. The report gives, for each sample, the grid count, duplicate grids,
-buckets observed, entropy, KL divergence, Jensen–Shannon divergence and total-variation distance from the reference,
-and then the same divergences between the two samples.
-
-These metrics describe the top-band distribution only, not the probability of complete grids. Exact-grid entropy is not
-reported, because with samples of a million grids it mostly reflects sample size.
-
-The script also compares two JSON weight distributions (lists in matching order, or objects keyed by category):
-
-```bash
-python3 utils/compare_distributions.py observed.json target.json
-```
-
-### `utils/generate_equivalent_grids.py`: symmetry copies of a grid list
-
-Reads a JSON list of solved grids and writes random symmetry-equivalent copies of each one, using the same
-transformations as the vectorized method in pure Python.
-
-Grids are flat lists of 81 digits in row order, one per line, in the same layout as `--format json`. Input grids
-written as 9×9 nested lists are also accepted. `data/grids.json` holds a single placeholder grid so the default command
-runs; replace it with your own grids.
-
-```bash
-python3 utils/generate_equivalent_grids.py --input data/grids.json --output data/equiv_grids.json --count 5 --seed 42
-```
-
-## Data source: `data/v36288.txt`
-
-`v36288.txt` comes from Bertram Felgenhauer and Frazer Jarvis's 2005 enumeration of Sudoku grids, published in
-*Mathematics of Sudoku I* (Felgenhauer and Jarvis, 2006). The table was computed by brute force and is available from
-Frazer Jarvis's Sudoku pages at <http://www.afjarvis.staff.shef.ac.uk/sudoku/bertram>. Credit for the data goes to the
-authors.
+The band table comes from Bertram Felgenhauer and Frazer Jarvis's 2005 enumeration of Sudoku grids, published in
+*Mathematics of Sudoku I* (Felgenhauer and Jarvis, 2006). It was computed by brute force with Bertram Felgenhauer's
+programs and is published on [Frazer Jarvis's Sudoku pages](https://www.afjarvis.org.uk/sudoku/bertram.html) as
+`results2long.txt` (and gzipped as `results2long.gz`). Credit for the data goes to the authors. This package does not redistribute it; it downloads it
+from the authors' page when first needed.
 
 **What it represents.** Fix the top-left box as `123 / 456 / 789`. There are 2,612,736 ways to fill the rest of the top
 band. Sorting the columns of boxes 2 and 3 by their top-row entries and putting the two boxes in order of their first
 entries does not change the number of completions, and it groups those fillings into 36,288 classes of 72. Each line of
-the file is one class with its completion count. The counts take only 44 distinct values, which correspond to Felgenhauer
-and Jarvis's 44 equivalence classes. As a check, the sum of all counts × 72² × 9! gives exactly the total number of
-grids above.
+the file is one class with its completion count. The counts take only 44 distinct values, which correspond to
+Felgenhauer and Jarvis's 44 equivalence classes. As a check, the sum of all counts × 72² × 9! gives exactly the total
+number of grids above.
 
 **How to read it.** Each line has this form:
 
@@ -209,24 +252,36 @@ line is the top band
 ```
 
 and the number after `=>` (108,374,976) is its completion count, which is the weight used for sampling. The file ends
-with a DOS end-of-file character (`0x1A`), which `src/shared_helper.py` skips.
+with a DOS end-of-file character (`0x1A`), which the loader skips.
 
-## Tests
+## Development
 
 ```bash
+git clone https://github.com/premneupane/fast-sudoku-generator.git
+cd fast-sudoku-generator
+uv sync                          # creates .venv with the package (editable) and dev tools
+uv run fast-sudoku fetch-data    # the band table, needed by some tests
 uv run pytest
 ```
 
-The suite in `tests/` runs in under a second and needs none of the large `.npy` files. It builds its own 50-grid cache
-in a temporary folder. It covers:
+Dependencies live in `pyproject.toml` and exact versions are locked in `uv.lock`. The `dev` group adds `ruff`,
+`pytest`, `pre-commit` and `mdformat`.
 
-- both generation engines: every grid is valid, seeds reproduce output, and the vectorized method handles batches and
+### Tests
+
+The suite in `tests/` runs in about a second and never touches the network or your real data folder: every test runs
+with `FAST_SUDOKU_DATA_DIR` pointing at a temporary folder and builds its own small cache. Tests that need the real band
+table use an already downloaded copy; without one they are skipped locally and fail on CI. The suite covers:
+
+- both generation methods: every grid is valid, seeds reproduce output, and the vectorized method handles batches and
   counts larger than its cache;
-- the `v36288.txt` loader, including a check that the counts reproduce the published total number of grids;
+- the Python API, including that it matches the command line;
+- the band-table loader, including a check that the counts reproduce the published total number of grids;
+- downloading and verifying the band table (with local files only), data folders and environment variables;
 - top-band completion and cache building;
 - the distribution metrics and top-band normalization;
-- the symmetry-copy utility and the `data/grids.json` placeholder;
-- the command line: output formats, the 10-grid terminal limit, `--force` and argument errors.
+- symmetry copies;
+- the command line: output formats, the 10-grid terminal limit, `--force`, errors and `--version`.
 
 ### Pre-commit hooks
 
@@ -245,43 +300,27 @@ changes and commit again. To run every hook without committing:
 uv run pre-commit run --all-files
 ```
 
-### Continuous integration
+### Continuous integration and releases
 
-GitHub Actions (`.github/workflows/tests.yml`) installs the locked dependencies with uv, runs the same pre-commit hooks
-for lint and formatting, and runs the test suite on Python 3.10–3.13. It runs on every push to `main` or `scripts` and
-on every pull request.
+GitHub Actions runs `.github/workflows/tests.yml` on every push to `main` or `scripts` and on every pull request:
 
-## Repository layout
+- the pre-commit lint and format hooks;
+- the test suite on Python 3.10–3.13, with the band table downloaded once and cached;
+- a build of the wheel, a check that it does not contain the band table, and a smoke test of the installed wheel in a
+  clean environment.
 
-```
-sudoku_generator.py               command-line entry point
-src/
-  backtracking.py                 randomized MRV backtracking engine
-  vectorized.py                   batched symmetry sampling from a grid cache
-  shared_helper.py                bitmask constant and v36288 table loader
-utils/
-  generate_cached_grids.py        builds the base-grid cache
-  compare_distributions.py        distribution metrics for grid datasets
-  generate_equivalent_grids.py    symmetry copies of grids in a JSON file
-tests/                            pytest suite (no large data needed)
-.github/workflows/tests.yml       CI: pre-commit lint/format and tests on Python 3.10-3.13
-.pre-commit-config.yaml           local hooks: ruff check, ruff format, pytest
-pyproject.toml                    dependencies and tool settings (pytest, ruff, mdformat)
-uv.lock                           exact dependency versions, managed by uv
-data/
-  v36288.txt                      36,288 top-band patterns with completion counts (committed)
-  grids.json                      one placeholder grid, input for generate_equivalent_grids.py (committed)
-  *.npy                           generated datasets and caches (git-ignored)
-```
+`.github/workflows/publish.yml` publishes with PyPI Trusted Publishing, so no API tokens are stored. Running it by hand
+publishes to TestPyPI. Publishing a GitHub release tagged `vX.Y.Z` (matching the version in `pyproject.toml`) publishes
+to PyPI.
 
-## Notes
+## Script version
 
-- Grids are always valid completed Sudokus. Neither method produces puzzles (grids with cells removed).
-- Use the same `--seed` with the same method, count and cache to reproduce output exactly.
-- Generated `.npy` files are large and git-ignored. Rebuild them with the commands above.
+The original standalone scripts, with no install step, live on the
+[`scripts` branch](https://github.com/premneupane/fast-sudoku-generator/tree/scripts) and in the
+[`scripts-v0.1.0` release](https://github.com/premneupane/fast-sudoku-generator/releases/tag/scripts-v0.1.0).
 
 ## License
 
-The code is released under the [MIT License](LICENSE). `data/v36288.txt` is Bertram Felgenhauer and Frazer Jarvis's
-published enumeration data, included with credit (see [Data source](#data-source-datav36288txt)); the MIT license covers
-this project's code, not their data.
+The code is released under the
+[MIT License](https://github.com/premneupane/fast-sudoku-generator/blob/main/LICENSE). The band table is Bertram
+Felgenhauer and Frazer Jarvis's published data; it is not part of this package and is not covered by its license.

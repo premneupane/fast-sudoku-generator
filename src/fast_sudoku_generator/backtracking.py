@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 
-from src.shared_helper import ALL_DIGITS
+from fast_sudoku_generator.patterns import ALL_DIGITS
 
 
 def generate_grid(rng: random.Random) -> list[list[int]]:

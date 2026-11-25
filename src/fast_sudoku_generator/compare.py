@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
-"""Compare probability distributions or Sudoku-grid samples.
+"""Compare two grid datasets, or two probability distributions in JSON.
 
 For JSON inputs, each file contains either a list of weights in matching
 category order or an object mapping category names to weights.
 
-For two .npy Sudoku datasets, the script compares empirical distributions of
-normalized top-band buckets against each other and against v36288's
-completion-count reference distribution. Exact-grid entropy is intentionally
+For two .npy Sudoku datasets, the command compares empirical distributions of
+normalized top-band buckets against each other and against the completion-count
+reference distribution from the Felgenhauer-Jarvis band table. Exact-grid entropy is intentionally
 not reported: with million-grid samples it is dominated by sample size.
 
 Examples:
-    python3 utils/compare_distributions.py observed.json target.json
-    python3 utils/compare_distributions.py sample1.npy sample2.npy
+    fast-sudoku compare observed.json target.json
+    fast-sudoku compare sample1.npy sample2.npy
 """
 
 from __future__ import annotations
@@ -19,19 +18,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.shared_helper import PatternTable, load_pattern_table  # noqa: E402
+from fast_sudoku_generator.data import pattern_file
+from fast_sudoku_generator.patterns import PatternTable, load_pattern_table
 
 Distribution = Sequence[float] | Mapping[str, float]
-DEFAULT_PATTERN_FILE = PROJECT_ROOT / "data" / "v36288.txt"
 
 
 def _aligned_values(p: Distribution, q: Distribution) -> tuple[list[float], list[float]]:
@@ -264,29 +259,24 @@ def _compare_json_files(p_path: Path, q_path: Path) -> None:
     print()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+def configure(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("p", type=Path, help="first JSON distribution or .npy grid dataset")
     parser.add_argument("q", type=Path, help="second JSON distribution or .npy grid dataset")
     parser.add_argument(
         "--pattern-file",
         type=Path,
-        default=DEFAULT_PATTERN_FILE,
-        help="v36288 lookup file used as the top-band reference for .npy datasets",
+        help="band table used as the reference for .npy datasets (default: the downloaded table)",
     )
-    args = parser.parse_args()
 
+
+def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     p_is_npy = args.p.suffix.lower() == ".npy"
     q_is_npy = args.q.suffix.lower() == ".npy"
     if p_is_npy != q_is_npy:
         parser.error("both inputs must be .npy grid datasets or both must be JSON distributions")
     print()
     if p_is_npy:
-        _compare_grid_files(args.p, args.q, args.pattern_file)
+        _compare_grid_files(args.p, args.q, args.pattern_file or pattern_file())
     else:
         _compare_json_files(args.p, args.q)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

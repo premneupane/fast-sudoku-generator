@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.vectorized import iter_vectorized_batches
+from fast_sudoku_generator.vectorized import iter_vectorized_batches
 from tests.sudoku_checks import is_valid_grid
 
 

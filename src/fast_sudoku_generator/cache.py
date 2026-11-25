@@ -1,9 +1,12 @@
-#!/usr/bin/env python3
-"""Build a reusable cache of completed grids from v36288 top-band patterns.
+"""Build the base-grid cache used by the vectorized method.
+
+Each grid starts from one of the 36,288 normalized top bands in the Felgenhauer-Jarvis
+table (downloaded on first use) and is completed by randomized backtracking. The
+weighted cache picks bands in proportion to their completion counts.
 
 Examples:
-    python3 utils/generate_cached_grids.py --type weighted
-    python3 utils/generate_cached_grids.py --type unweighted --seed 42
+    fast-sudoku build-cache                         weighted, 1,000,000 grids
+    fast-sudoku build-cache --type u --seed 42      unweighted
 """
 
 from __future__ import annotations
@@ -18,16 +21,9 @@ from typing import Sequence
 
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+from fast_sudoku_generator.data import grid_cache_path, pattern_file
+from fast_sudoku_generator.patterns import ALL_DIGITS, load_pattern_table
 
-from src.shared_helper import ALL_DIGITS, load_pattern_table  # noqa: E402
-
-DEFAULT_PATTERN_FILE = PROJECT_ROOT / "data" / "v36288.txt"
-DEFAULT_OUTPUT_FILES = {
-    "weighted": PROJECT_ROOT / "data" / "cached-grids.npy",
-    "unweighted": PROJECT_ROOT / "data" / "cached-grids-unweighted.npy",
-}
 TYPE_ALIASES = {
     "weighted": "weighted",
     "w": "weighted",
@@ -106,9 +102,7 @@ def generate_completion(first_band: Sequence[str], rng: random.Random) -> list[l
     return [grid[start : start + 9] for start in range(0, 81, 9)]
 
 
-def main() -> int:
-    started = time.perf_counter()
-    parser = argparse.ArgumentParser(description=__doc__)
+def configure(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--count", type=int, default=1_000_000, help="number of grids (default: 1,000,000)")
     parser.add_argument(
         "--type",
@@ -118,11 +112,14 @@ def main() -> int:
         metavar="{weighted,w,unweighted,u}",
         help="pattern selection rule; w/weighted uses completion counts (default: weighted)",
     )
-    parser.add_argument("--pattern-file", type=Path, default=DEFAULT_PATTERN_FILE)
-    parser.add_argument("-o", "--output", type=Path, help="cache output path (defaults depend on --type)")
+    parser.add_argument("--pattern-file", type=Path, help="band table to use (default: the downloaded table)")
+    parser.add_argument("-o", "--output", type=Path, help="cache output path (default: the data folder)")
     parser.add_argument("--seed", type=int, help="seed for a repeatable cache")
     parser.add_argument("--progress-every", type=int, default=50_000, help="progress interval")
-    args = parser.parse_args()
+
+
+def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    started = time.perf_counter()
 
     if args.count < 1:
         parser.error("--count must be at least 1")
@@ -130,8 +127,8 @@ def main() -> int:
         parser.error("--progress-every must be at least 1")
 
     grid_type = TYPE_ALIASES[args.grid_type]
-    output_path = args.output or DEFAULT_OUTPUT_FILES[grid_type]
-    table = load_pattern_table(args.pattern_file)
+    output_path = args.output or grid_cache_path(grid_type)
+    table = load_pattern_table(args.pattern_file or pattern_file())
     if len(table.patterns) != 36_288:
         parser.error("the cache builder requires the 36,288-row v36288 file")
 
@@ -164,7 +161,3 @@ def main() -> int:
     print(f"{grid_type.title()} cache saved to {output_path}", file=sys.stderr)
     print(f"Total end-to-end time: {time.perf_counter() - started:.3f} seconds", file=sys.stderr)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
