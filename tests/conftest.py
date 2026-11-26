@@ -44,7 +44,7 @@ def isolated_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture(scope="session")
 def pattern_path() -> Path:
     if DOWNLOADED_TABLE is None:
-        message = "band table not downloaded; run `uv run fast-sudoku fetch-data` first"
+        message = "band table not downloaded; run `uv run nby9 fetch-data` first"
         if os.environ.get("CI"):
             pytest.fail(message)
         pytest.skip(message)

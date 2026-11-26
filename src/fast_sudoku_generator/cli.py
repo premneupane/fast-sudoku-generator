@@ -1,4 +1,4 @@
-"""The ``fast-sudoku`` command line."""
+"""The ``nby9`` command line."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def _run_fetch_data(args: argparse.Namespace, parser: argparse.ArgumentParser) -
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="fast-sudoku",
+        prog="nby9",
         description="Generate completed 9x9 Sudoku grids quickly and measure how samples are distributed.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -64,7 +64,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return args._run(args, args._parser)
     except DataError as exc:
-        print(f"fast-sudoku {args.command}: error: {exc}", file=sys.stderr)
+        print(f"nby9 {args.command}: error: {exc}", file=sys.stderr)
         return 1
 
 

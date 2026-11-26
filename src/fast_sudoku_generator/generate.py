@@ -1,12 +1,12 @@
 """Generate completed 9x9 Sudoku grids.
 
 Examples:
-    fast-sudoku generate                       one grid, printed as a 9x9 layout
-    fast-sudoku generate -n 1000 -o grids.txt  one grid per line as an 81-digit list
-    fast-sudoku generate -n 1000000 --method v --format npy -o grids.npy
+    nby9 generate                       one grid, printed as a 9x9 layout
+    nby9 generate -n 1000 -o grids.txt  one grid per line as an 81-digit list
+    nby9 generate -n 1000000 --method v --format npy -o grids.npy
 
 Methods: backtracking (b) builds each grid by randomized search; vectorized (v)
-samples from a base-grid cache (built once with `fast-sudoku build-cache`) and
+samples from a base-grid cache (built once with `nby9 build-cache`) and
 applies random Sudoku symmetries in batches.
 
 Text and JSON output to a terminal is limited to 10 grids unless --force is given.
@@ -153,7 +153,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     rng = random.Random(args.seed)
     grid_file = (args.grid_file or grid_cache_path("weighted")) if args.method == "vectorized" else None
     if grid_file and not grid_file.is_file():
-        raise DataError(f"grid cache not found: {grid_file}; build it once with `fast-sudoku build-cache`")
+        raise DataError(f"grid cache not found: {grid_file}; build it once with `nby9 build-cache`")
     if args.format == "npy":
         generation_seconds, output_path = _write_npy(args, rng, grid_file)
         print(f"Dataset saved to {output_path}", file=sys.stderr)

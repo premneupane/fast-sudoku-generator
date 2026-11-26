@@ -53,7 +53,7 @@ jobs:
         with:
           path: .fast-sudoku-data/v36288.txt
           key: band-table-3f1868fb77647e33
-      - run: uv run fast-sudoku fetch-data
+      - run: uv run nby9 fetch-data
       - run: uv run pytest
 
   package:
@@ -72,8 +72,8 @@ jobs:
         run: |
           uv venv /tmp/clean
           uv pip install --python /tmp/clean dist/*.whl
-          /tmp/clean/bin/fast-sudoku --version
-          /tmp/clean/bin/fast-sudoku generate -n 3 --seed 1
+          /tmp/clean/bin/nby9 --version
+          /tmp/clean/bin/nby9 generate -n 3 --seed 1
           /tmp/clean/bin/python -c "import fast_sudoku_generator as f; print(f.generate_grids(2).shape)"
       - uses: actions/upload-artifact@v7
         with:

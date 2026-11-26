@@ -1,12 +1,12 @@
 """Write random Sudoku-symmetry copies of each grid in a JSON file.
 
 Input and output grids are flat lists of 81 digits in row order, one grid per
-line, the same layout `fast-sudoku generate --format json` writes. Input
+line, the same layout `nby9 generate --format json` writes. Input
 grids given as 9x9 nested lists are also accepted.
 
 Examples:
-    fast-sudoku equivalents grids.json                       print copies to stdout
-    fast-sudoku equivalents grids.json --count 5 --seed 42 -o copies.json
+    nby9 equivalents grids.json                       print copies to stdout
+    nby9 equivalents grids.json --count 5 --seed 42 -o copies.json
 """
 
 from __future__ import annotations

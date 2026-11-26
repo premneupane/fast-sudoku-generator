@@ -58,7 +58,7 @@ def test_grid_cache_paths(isolated_data_dir):
 
 
 def test_missing_table_without_download_explains_fix():
-    with pytest.raises(data.DataError, match="fast-sudoku fetch-data"):
+    with pytest.raises(data.DataError, match="nby9 fetch-data"):
         data.pattern_file(download=False)
 
 

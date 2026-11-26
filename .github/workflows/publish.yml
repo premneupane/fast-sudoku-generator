@@ -2,6 +2,7 @@ name: Publish
 
 # Publishing uses PyPI Trusted Publishing: no API tokens are stored in the repo.
 # One-time setup on pypi.org and test.pypi.org: add a "pending publisher" with
+#   PyPI project name: nby9
 #   owner: premneupane   repository: fast-sudoku-generator
 #   workflow: publish.yml   environment: pypi (PyPI) / testpypi (TestPyPI)
 #
@@ -44,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/fast-sudoku-generator
+      url: https://test.pypi.org/p/nby9
     permissions:
       id-token: write
     steps:
@@ -61,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/fast-sudoku-generator
+      url: https://pypi.org/p/nby9
     permissions:
       id-token: write
     steps:

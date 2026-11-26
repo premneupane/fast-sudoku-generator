@@ -5,7 +5,7 @@ Python API::
     from fast_sudoku_generator import generate_grids
 
     grids = generate_grids(1000, seed=42)  # backtracking, shape (1000, 81)
-    grids = generate_grids(1_000_000, method="vectorized")  # needs `fast-sudoku build-cache` once
+    grids = generate_grids(1_000_000, method="vectorized")  # needs `nby9 build-cache` once
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from fast_sudoku_generator.data import DataError, grid_cache_path
 from fast_sudoku_generator.vectorized import iter_vectorized_batches
 
 try:
-    __version__ = version("fast-sudoku-generator")
+    __version__ = version("nby9")
 except PackageNotFoundError:  # running from a source tree that is not installed
     __version__ = "0.0.0"
 
@@ -38,7 +38,7 @@ def generate_grids(
 
     ``method`` is ``"backtracking"`` (``"b"``) or ``"vectorized"`` (``"v"``). The vectorized
     method samples from a base-grid cache: ``grid_file`` if given, otherwise the weighted
-    cache built by ``fast-sudoku build-cache``. Results match the command line for the
+    cache built by ``nby9 build-cache``. Results match the command line for the
     same method, count, seed and cache.
     """
     if count < 1:
@@ -50,6 +50,6 @@ def generate_grids(
     if method == "vectorized":
         cache = Path(grid_file) if grid_file is not None else grid_cache_path("weighted")
         if not cache.is_file():
-            raise DataError(f"grid cache not found: {cache}; build it with `fast-sudoku build-cache`")
+            raise DataError(f"grid cache not found: {cache}; build it with `nby9 build-cache`")
         return np.concatenate(list(iter_vectorized_batches(count, grid_file=cache, seed=seed)))
     raise ValueError("method must be 'backtracking' (b) or 'vectorized' (v)")

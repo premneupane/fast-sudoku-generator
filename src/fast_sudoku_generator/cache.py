@@ -5,8 +5,8 @@ table (downloaded on first use) and is completed by randomized backtracking. The
 weighted cache picks bands in proportion to their completion counts.
 
 Examples:
-    fast-sudoku build-cache                         weighted, 1,000,000 grids
-    fast-sudoku build-cache --type u --seed 42      unweighted
+    nby9 build-cache                         weighted, 1,000,000 grids
+    nby9 build-cache --type u --seed 42      unweighted
 """
 
 from __future__ import annotations

@@ -1,11 +1,11 @@
-# fast-sudoku-generator project and tool configuration, managed with uv.
+# nby9 (fast-sudoku-generator) project and tool configuration, managed with uv.
 
 [build-system]
 requires = ["uv_build>=0.13.8,<0.14"]
 build-backend = "uv_build"
 
 [project]
-name = "fast-sudoku-generator"
+name = "nby9"
 version = "0.2.0"
 description = "Generate completed 9x9 Sudoku grids quickly and measure how samples are distributed."
 readme = "README.md"
@@ -34,7 +34,10 @@ dependencies = [
 ]
 
 [project.scripts]
-fast-sudoku = "fast_sudoku_generator.cli:main"
+nby9 = "fast_sudoku_generator.cli:main"
+
+[tool.uv.build-backend]
+module-name = "fast_sudoku_generator"  # the PyPI name is nby9; the import name stays fast_sudoku_generator
 
 [project.urls]
 Homepage = "https://github.com/premneupane/fast-sudoku-generator"

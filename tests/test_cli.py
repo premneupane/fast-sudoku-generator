@@ -1,4 +1,4 @@
-"""End-to-end tests for `fast-sudoku generate` and the top-level command."""
+"""End-to-end tests for `nby9 generate` and the top-level command."""
 
 import io
 import json
@@ -19,7 +19,7 @@ class FakeTerminal(io.StringIO):
 
 
 def run(monkeypatch, *args, terminal=False):
-    """Run `fast-sudoku generate ARGS`; return (exit code, stdout text)."""
+    """Run `nby9 generate ARGS`; return (exit code, stdout text)."""
     stdout = FakeTerminal() if terminal else io.StringIO()
     monkeypatch.setattr(sys, "stdout", stdout)
     code = main(["generate", *map(str, args)])
@@ -108,7 +108,7 @@ def test_bad_arguments_exit_with_usage_error(monkeypatch, args):
 def test_missing_cache_reports_how_to_build_it(monkeypatch, capsys, args):
     code, _ = run(monkeypatch, *args)
     assert code == 1
-    assert "fast-sudoku build-cache" in capsys.readouterr().err
+    assert "nby9 build-cache" in capsys.readouterr().err
 
 
 def test_npy_default_output_is_current_folder(monkeypatch, tmp_path):
@@ -121,7 +121,7 @@ def test_version_flag(capsys):
     with pytest.raises(SystemExit) as error:
         main(["--version"])
     assert error.value.code == 0
-    assert capsys.readouterr().out.strip() == f"fast-sudoku {__version__}"
+    assert capsys.readouterr().out.strip() == f"nby9 {__version__}"
 
 
 def test_runs_as_python_module():

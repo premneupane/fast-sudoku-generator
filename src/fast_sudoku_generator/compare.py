@@ -9,8 +9,8 @@ reference distribution from the Felgenhauer-Jarvis band table. Exact-grid entrop
 not reported: with million-grid samples it is dominated by sample size.
 
 Examples:
-    fast-sudoku compare observed.json target.json
-    fast-sudoku compare sample1.npy sample2.npy
+    nby9 compare observed.json target.json
+    nby9 compare sample1.npy sample2.npy
 """
 
 from __future__ import annotations

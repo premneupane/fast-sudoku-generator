@@ -1,4 +1,4 @@
-# fast-sudoku-generator
+# nby9: fast Sudoku grid generator
 
 Generate large numbers of completed 9×9 Sudoku grids quickly, and measure how the samples are distributed.
 
@@ -10,46 +10,47 @@ There are two generation methods:
   at once with NumPy. It is about 170 times faster.
 
 The package also builds the cache, compares the distributions of generated datasets, and makes symmetry copies of
-grids. Everything is available as the `fast-sudoku` command and as a Python API.
+grids. Everything is available as the `nby9` command and as a Python API.
 
 ## Install
 
 ```bash
-pip install fast-sudoku-generator
+pip install nby9
 ```
 
 or, to install just the command with [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/):
 
 ```bash
-uv tool install fast-sudoku-generator
-pipx install fast-sudoku-generator
+uv tool install nby9
+pipx install nby9
 ```
 
-Requires Python 3.10 or later. The only dependency is NumPy.
+Requires Python 3.10 or later. The only dependency is NumPy. The package installs the `nby9` command and the
+`fast_sudoku_generator` Python module.
 
 ## Quick start
 
 ```bash
 # One grid, printed as a 9x9 layout
-fast-sudoku generate
+nby9 generate
 
 # A thousand reproducible grids, one per line, to a file
-fast-sudoku generate -n 1000 --seed 42 -o grids.txt
+nby9 generate -n 1000 --seed 42 -o grids.txt
 
 # For the fast method, build the base-grid cache once (about 7 minutes, 78 MB)
-fast-sudoku build-cache
+nby9 build-cache
 
 # A million grids as a NumPy array
-fast-sudoku generate -n 1000000 --method v --format npy -o grids.npy
+nby9 generate -n 1000000 --method v --format npy -o grids.npy
 ```
 
 The first command that needs the Felgenhauer–Jarvis band table downloads it (about 150 KB, once). See "Data files" below.
 
 ## Commands
 
-Run `fast-sudoku COMMAND --help` for every option.
+Run `nby9 COMMAND --help` for every option.
 
-### `fast-sudoku generate`
+### `nby9 generate`
 
 | Option | Description |
 | --- | --- |
@@ -73,14 +74,14 @@ To keep the terminal readable, text and JSON output to a terminal is limited to 
 error that suggests `-o FILE` or `--format npy`. Redirected or piped output (`> grids.txt`, `| head`) is not limited,
 and `--force` lifts the limit. Timing information goes to standard error, so standard output stays clean for piping.
 
-### `fast-sudoku build-cache`
+### `nby9 build-cache`
 
 Builds the base-grid cache that the vectorized method samples from. Each grid starts from one of the 36,288 normalized
 top bands in the band table, and the remaining six rows are completed with randomized backtracking.
 
 ```bash
-fast-sudoku build-cache                       # weighted, 1,000,000 grids
-fast-sudoku build-cache --type u --seed 42    # unweighted
+nby9 build-cache                       # weighted, 1,000,000 grids
+nby9 build-cache --type u --seed 42    # unweighted
 ```
 
 - `--type weighted` (`w`, the default) picks each top band in proportion to its number of completions.
@@ -89,13 +90,13 @@ fast-sudoku build-cache --type u --seed 42    # unweighted
 
 Caches are saved in the data folder unless you pass `-o`. A one-million-grid cache is about 78 MB.
 
-### `fast-sudoku compare`
+### `nby9 compare`
 
 Compares two `.npy` grid datasets (shape `(N, 81)` or `(N, 9, 9)`) with each other and with the reference distribution
 from the band table:
 
 ```bash
-fast-sudoku compare backtracking.npy vectorized.npy
+nby9 compare backtracking.npy vectorized.npy
 ```
 
 Each grid's top band is normalized (digits relabeled so the first box reads 1–9, then the second and third boxes are
@@ -109,10 +110,10 @@ reported, because with samples of a million grids it mostly reflects sample size
 It also compares two JSON weight distributions (lists in matching order, or objects keyed by category):
 
 ```bash
-fast-sudoku compare observed.json target.json
+nby9 compare observed.json target.json
 ```
 
-### `fast-sudoku equivalents`
+### `nby9 equivalents`
 
 Reads a JSON list of solved grids and writes random symmetry-equivalent copies of each one, using the same
 transformations as the vectorized method. Grids are flat lists of 81 digits in row order, one per line, in the same
@@ -121,12 +122,12 @@ layout as `generate --format json`; 9×9 nested lists are also accepted as input
 example grid.
 
 ```bash
-fast-sudoku equivalents grids.json --count 5 --seed 42 -o copies.json
+nby9 equivalents grids.json --count 5 --seed 42 -o copies.json
 ```
 
 Without `-o`, the copies are written to standard output.
 
-### `fast-sudoku fetch-data`
+### `nby9 fetch-data`
 
 Downloads the band table now instead of on first use, for example before going offline. `--from FILE` installs a copy
 you already have (`results2long.gz` or `results2long.txt`), and `--force` replaces an existing copy. Either way, the file is checked against its known SHA-256
@@ -138,12 +139,12 @@ hash before it is kept.
 from fast_sudoku_generator import generate_grids
 
 grids = generate_grids(1000, seed=42)  # backtracking, shape (1000, 81), dtype uint8
-grids = generate_grids(1_000_000, method="vectorized")  # needs `fast-sudoku build-cache` once
+grids = generate_grids(1_000_000, method="vectorized")  # needs `nby9 build-cache` once
 grid = grids[0].reshape(9, 9)
 ```
 
 `generate_grids(count, method="backtracking", seed=None, grid_file=None)` returns grids as rows of 81 digits in row
-order. For the same method, count, seed and cache, it returns the same grids as `fast-sudoku generate`. A missing cache
+order. For the same method, count, seed and cache, it returns the same grids as `nby9 generate`. A missing cache
 raises `fast_sudoku_generator.DataError`.
 
 ## Data files
@@ -159,7 +160,7 @@ The package keeps two kinds of file in a per-user data folder:
 - **`v36288.txt`**, the band table. It is not bundled with the package. On first use the gzipped version,
   `results2long.gz` on [Frazer Jarvis's page](https://www.afjarvis.org.uk/sudoku/bertram.html), is downloaded,
   decompressed and checked against a known SHA-256 hash.
-- **`cached-grids.npy`** and **`cached-grids-unweighted.npy`**, the base-grid caches built by `fast-sudoku build-cache`.
+- **`cached-grids.npy`** and **`cached-grids-unweighted.npy`**, the base-grid caches built by `nby9 build-cache`.
 
 Two environment variables change this:
 
@@ -168,7 +169,7 @@ Two environment variables change this:
   point at a table you generated yourself.
 
 **Offline machines:** download `results2long.gz` by hand from the page above, copy it over, and run
-`fast-sudoku fetch-data --from results2long.gz`. A decompressed `results2long.txt` works too.
+`nby9 fetch-data --from results2long.gz`. A decompressed `results2long.txt` works too.
 
 ## How the methods work
 
@@ -205,7 +206,7 @@ This is an imperfect proxy for uniform sampling:
   uniformly among the completions of that band.
 - The vectorized method can only produce symmetry variants of grids in the cache. A one-million-grid cache covers at
   most a million of the 5,472,730,538 essentially different grids, however many outputs you generate.
-- `fast-sudoku compare` checks the top-band distribution only, so it can show bias in the top band but not in the rest
+- `nby9 compare` checks the top-band distribution only, so it can show bias in the top band but not in the rest
   of the grid.
 
 ### Performance
@@ -260,7 +261,7 @@ with a DOS end-of-file character (`0x1A`), which the loader skips.
 git clone https://github.com/premneupane/fast-sudoku-generator.git
 cd fast-sudoku-generator
 uv sync                          # creates .venv with the package (editable) and dev tools
-uv run fast-sudoku fetch-data    # the band table, needed by some tests
+uv run nby9 fetch-data    # the band table, needed by some tests
 uv run pytest
 ```
 

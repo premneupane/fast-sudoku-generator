@@ -7,7 +7,7 @@ Two kinds of file live in a per-user data folder:
   package. It is downloaded once (gzipped) from Frazer Jarvis's site, decompressed and
   checked against a known SHA-256 hash.
 * ``cached-grids.npy`` / ``cached-grids-unweighted.npy``: base-grid caches for the
-  vectorized method, built locally with ``fast-sudoku build-cache``.
+  vectorized method, built locally with ``nby9 build-cache``.
 
 Environment variables:
 
@@ -88,7 +88,7 @@ def pattern_file(download: bool = True) -> Path:
     if path.is_file():
         return path
     if not download:
-        raise DataError(f"band table not found at {path}; run `fast-sudoku fetch-data` to download it")
+        raise DataError(f"band table not found at {path}; run `nby9 fetch-data` to download it")
     return fetch_pattern_file()
 
 
@@ -123,7 +123,7 @@ def fetch_pattern_file(source: str | Path | None = None, force: bool = False) ->
         raise DataError(
             f"could not get the band table from {location}: {exc}\n"
             f"Download results2long.gz by hand from {PATTERN_PAGE} and run\n"
-            "  fast-sudoku fetch-data --from /path/to/results2long.gz"
+            "  nby9 fetch-data --from /path/to/results2long.gz"
         ) from exc
 
     if payload[:2] == GZIP_MAGIC:
