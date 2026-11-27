@@ -1,4 +1,4 @@
-# nby9 (fast-sudoku-generator) project and tool configuration, managed with uv.
+# nby9 (fast-training-data-generator) project and tool configuration, managed with uv.
 
 [build-system]
 requires = ["uv_build>=0.13.8,<0.14"]
@@ -40,9 +40,9 @@ nby9 = "fast_sudoku_generator.cli:main"
 module-name = "fast_sudoku_generator"  # the PyPI name is nby9; the import name stays fast_sudoku_generator
 
 [project.urls]
-Homepage = "https://github.com/premneupane/fast-sudoku-generator"
-Repository = "https://github.com/premneupane/fast-sudoku-generator"
-Issues = "https://github.com/premneupane/fast-sudoku-generator/issues"
+Homepage = "https://github.com/nby9/fast-training-data-generator"
+Repository = "https://github.com/nby9/fast-training-data-generator"
+Issues = "https://github.com/nby9/fast-training-data-generator/issues"
 
 [dependency-groups]
 dev = [

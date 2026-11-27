@@ -118,7 +118,7 @@ nby9 compare observed.json target.json
 Reads a JSON list of solved grids and writes random symmetry-equivalent copies of each one, using the same
 transformations as the vectorized method. Grids are flat lists of 81 digits in row order, one per line, in the same
 layout as `generate --format json`; 9×9 nested lists are also accepted as input.
-[`examples/grids.json`](https://github.com/premneupane/fast-sudoku-generator/blob/main/examples/grids.json) holds one
+[`examples/grids.json`](https://github.com/nby9/fast-training-data-generator/blob/main/examples/grids.json) holds one
 example grid.
 
 ```bash
@@ -258,8 +258,8 @@ with a DOS end-of-file character (`0x1A`), which the loader skips.
 ## Development
 
 ```bash
-git clone https://github.com/premneupane/fast-sudoku-generator.git
-cd fast-sudoku-generator
+git clone https://github.com/nby9/fast-training-data-generator.git
+cd fast-training-data-generator
 uv sync                          # creates .venv with the package (editable) and dev tools
 uv run nby9 fetch-data    # the band table, needed by some tests
 uv run pytest
@@ -317,11 +317,11 @@ to PyPI.
 ## Script version
 
 The original standalone scripts, with no install step, live on the
-[`scripts` branch](https://github.com/premneupane/fast-sudoku-generator/tree/scripts) and in the
-[`scripts-v0.1.0` release](https://github.com/premneupane/fast-sudoku-generator/releases/tag/scripts-v0.1.0).
+[`scripts` branch](https://github.com/nby9/fast-training-data-generator/tree/scripts) and in the
+[`scripts-v0.1.0` release](https://github.com/nby9/fast-training-data-generator/releases/tag/scripts-v0.1.0).
 
 ## License
 
 The code is released under the
-[MIT License](https://github.com/premneupane/fast-sudoku-generator/blob/main/LICENSE). The band table is Bertram
+[MIT License](https://github.com/nby9/fast-training-data-generator/blob/main/LICENSE). The band table is Bertram
 Felgenhauer and Frazer Jarvis's published data; it is not part of this package and is not covered by its license.

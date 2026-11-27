@@ -3,7 +3,7 @@ name: Publish
 # Publishing uses PyPI Trusted Publishing: no API tokens are stored in the repo.
 # One-time setup on pypi.org and test.pypi.org: add a "pending publisher" with
 #   PyPI project name: nby9
-#   owner: premneupane   repository: fast-sudoku-generator
+#   owner: nby9   repository: fast-training-data-generator
 #   workflow: publish.yml   environment: pypi (PyPI) / testpypi (TestPyPI)
 #
 # - Run this workflow by hand (Actions tab) to publish to TestPyPI.
@@ -54,6 +54,8 @@ jobs:
           name: dist
           path: dist/
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false  # no checkout here, so there is no uv.lock to key a cache on
       - run: uv publish --trusted-publishing always --publish-url https://test.pypi.org/legacy/
 
   pypi:
@@ -71,4 +73,6 @@ jobs:
           name: dist
           path: dist/
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false  # no checkout here, so there is no uv.lock to key a cache on
       - run: uv publish --trusted-publishing always
